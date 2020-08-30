@@ -1,1 +1,1 @@
-web: gunicorn estimator:app
+web: gunicorn wsgi:app
