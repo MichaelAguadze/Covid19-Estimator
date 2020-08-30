@@ -68,7 +68,10 @@ def before_request():
     g.start_time = time.time()
     g.logs = open("log_book.txt", "a+")
 
-
+@app.route('/')
+def index():
+  return "Welcome"
+    
 @app.route("/api/v1/on-covid-19/xml", methods = ["POST", "GET"])
 def xml_request():
     """
