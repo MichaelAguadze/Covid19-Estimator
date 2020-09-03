@@ -1,9 +1,33 @@
-import time
-from flask import Flask, Response, request, jsonify, g, redirect, render_template
 from xml.etree.ElementTree import Element, tostring
-from covid19 import covid19assessment
 
-app = Flask(__name__)
+class covid19assessment:
+    
+    def __init__(self, currently_infected, days):
+        self.days = days
+        self.currently_infected = currently_infected
+        self.infections_by_requested_time = int(self.currently_infected*(2**(self.days//3)))
+        
+
+    def severe_cases_by_requested_time(self):
+        self.severe_cases_by_requested_time = int(self.infections_by_requested_time*0.15)
+        return self.severe_cases_by_requested_time
+
+    def hospital_beds_by_requested_time(self, total_hospital_beds):
+        percentage = 65
+        self.available_hospital_beds = int(total_hospital_beds*((100-percentage)/100))
+        return self.available_hospital_beds
+    
+    def cases_for_icu__by_requested_time(self):
+        self.cases_for_icu_by_requested_time = int(self.infections_by_requested_time*0.05)
+        return self.cases_for_icu_by_requested_time
+    
+    def cases_for_ventilators_by_requested_time(self):
+        self.cases_for_ventilators_by_requested_time = int(self.infections_by_requested_time*0.02)
+        return self.cases_for_ventilators_by_requested_time
+    
+    def dollars_in_flight(self, avg_daily_income_population, avg_daily_income_in_usd):
+        self.dollars_in_flight = self.infections_by_requested_time*avg_daily_income_population*avg_daily_income_in_usd*self.days
+        return self.dollars_in_flight
 
 def estimator(data):
     """
@@ -63,56 +87,7 @@ def dict_to_xml(tag, d):
         elem.append(child)
     return elem
 
-@app.before_request
-def before_request():
-    g.start_time = time.time()
-    g.logs = open("log_book.txt", "a+")
 
-@app.route('/')
-def index():
-  return "Welcome"
-    
-@app.route("/api/v1/on-covid-19/xml", methods = ["POST", "GET"])
-def xml_request():
-    """
-    This function responds to request seeking XML format
-    """
-    
-    req_data = request.get_json()
-    result = estimator(req_data)
-    data = tostring(dict_to_xml('estimate', result))
-    g.log_info = "  /api/v1/on-covid-19/xml   "
-    return Response(response = data, status = 200, mimetype="application/xml") 
-
-
-@app.route("/api/v1/on-covid-19", methods=["POST", "GET"] )
-@app.route("/api/v1/on-covid-19/json", methods=["POST", "GET"])
-def json_request():
-    """
-    This function responds to request seeking JSON format
-    """
-    req_data = request.get_json()
-    result = estimator(req_data)
-    if request.path == "/api/v1/on-covid-19": 
-        g.log_info = "  /api/v1/on-covid-19  "
-    else:
-        g.log_info = "  /api/v1/on-covid-19/json  "
-    return jsonify(result)
-
-@app.route("/api/v1/on-covid-19/logs", methods=["GET"])
-def check_logs():
-    g.logs = open("log_book.txt", "r")
-    text_data = [lines for lines in g.logs]
-    return render_template("index.html", content=text_data)
-    
-
-@app.after_request
-def after_request(response):
-    end_time = int((time.time() - g.start_time)*1000) 
-    if request.path != "/api/v1/on-covid-19/logs":
-        g.logs.write(request.method + g.log_info + str(end_time) + "ms" + "    " + str(response.status_code) + "\n" )
-    g.logs.close()
-    return response
 
 
      
